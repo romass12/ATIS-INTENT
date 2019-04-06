@@ -20,15 +20,7 @@ import numpy as np
 import logging
 import itertools
 import spacy
-from nltk.stem import WordNetLemmatizer 
-from flair.models import SequenceTagger
-from flair.data import Sentence
 
-spacy_model=spacy.load('en')
-
-model = SequenceTagger.load('pos')
-  
-lemmatizer = WordNetLemmatizer() 
 logger = logging.getLogger(__name__)
 
 
@@ -66,102 +58,6 @@ class MacOSFile(object):
             print("done.", flush=True)
             idx += batch_size
 
-def find_ngrams(input_list, n):
-    """Create ngrams for input list
-        @param: input_list The list to separate in ngrams
-        @param: n Number of ngrams to find"""
-    return zip(*[input_list[i:] for i in range(n)])
-
-def semhash_tokenizer(text):
-    """ To create the tokens from the ngrams with #token# style
-        @param: text String to transform
-        
-        return final_tokens list of ngrams for words with hashes at the beginning and end"""
-    tokens = text.split(" ")
-    final_tokens = []
-    for unhashed_token in tokens:
-        #if unhashed_token not in stopwords:
-        hashed_token = "#{}#".format(unhashed_token)
-        final_tokens+=[hashed_token]
-        #final_tokens += [''.join(gram) for gram in list(find_ngrams(list(hashed_token), 3))]
-        #print(final_tokens)
-    return final_tokens
-    
-class ConfigLoading():
-    def __init__(self,dir_path,config,path_nlp_data,path_nlp_models):
-        self.config = config
-        self.score_srk_en = config['data']['score_srk_en']
-        self.ratio_srk_en = config['data']['ratio_srk_en']
-        self.path_nlp_data = path_nlp_data
-        self.path_nlp_models = path_nlp_models
-        self.nlp_model = self.load_models(os.path.join(self.path_nlp_models,config['models']['NLP']['NLP_MODEL']),'spacy')
-        self.en_stopwords_path = os.path.join(self.path_nlp_data,config['data']['stopwords_en'])
-        self.stopwords_en = self.load_data(self.en_stopwords_path)
-
-        
-        self.label_Enco = self.load_models(os.path.join(self.path_nlp_models,config['models']['label_encoder']),'pickle')
-        self.classifier = self.load_models(os.path.join(self.path_nlp_models,config['models']['classifier']),'pickle')
-        self.vectorizer = self.load_models(os.path.join(self.path_nlp_models,config['models']['vectorizer']),'pickle')
-        self.NLP_MODELS= list(self.config['models']['NLP'].keys())
-        self.NLP_DATA= list(self.config['data'].keys())
-        self.nlp_path = os.path.join(self.path_nlp_data,config['data']['unique_en'])
-        self.unique  = self.load_models(self.nlp_path,'pickle')
-        self.responses_dict  = self.load_data(os.path.join(self.path_nlp_data,config['data']['responses']))
-        
-
-    def load_data(self,path):
-        logger.debug("loading data from : {}".format(path))
-        if(path.endswith('json')):
-            with open(path) as f:
-                data = json.loads(f.read())
-            return data
-        with open(path,'r') as f:
-            data = f.readlines()
-        sto=[]
-        for s in data:
-        	s = s.replace('\n','')
-        	sto.append(s)
-        return sto
-    def load_models(self,path,flag):
-        logger.debug("loading from {} with type {}".format(path, flag))
-        if flag == 'spacy':
-            return spacy.load(path)
-        if flag == 'pickle':
-            try:
-                return pickle.load(open(path,'rb'))
-            except Exception as e:
-                logger.debug("cannot load this file because {}".format(e))
-                try:
-                    return pickle_load(path)
-                except:
-                    logger.warning("this pickle already has a lot of data that even after doing buffered reading on file it is still giving error")
-
-def get_class_weights(y_train, smooth_factor):
-    from collections import Counter 
-    counter = Counter(y_train)
-    if smooth_factor > 0:
-        p = max(counter.values()) * smooth_factor
-        for k in counter.keys():
-            counter[k] += p
-    majority = max(counter.values())
-    weight = {cls: float(count / majority) for cls, count in counter.items()}
-    weights=[]
-    classs=[]
-    for y in y_train:
-        if y not in classs:
-            classs.append(y)
-            weights.append(weight[y])
-    return weights
-
-def similarity(sentence,list_of_nnp):
-    for word in sentence.split():
-        token = spacy_model(word)
-        for nnp in list(set(list_of_nnp)):
-            if token.similarity(spacy_model(nnp)) > 0.8:
-                print(word)
-                sentence = re.sub(r'\s\b%s\b\s'%word,' ',sentence)
-                break
-    return sentence
 
 
 
@@ -288,29 +184,3 @@ def training(training_data,list_of_nnp,list_of_day,list_of_dayperiod):
     clf = MultinomialNB(alpha=0.2)
     clf.fit(X_train, y_train)
     return vectorizer,clf,le
-def uploaded_data(data,nlp_model):
-    '''This method aids in extracting data from uploaded file using POS model'''
-
-    entities=[]
-    final_data=[]
-    vocab={}
-    final_data = [sentence.split(' ') for sentence in data]  
-    final_data = list(itertools.chain.from_iterable(final_data))
-    logger.debug("length of vocabulary words -->{}".format(len(final_data)))
-    
-    return final_data
-
-def change_existing_dataset(data,nlp_model,list_of_stop,path):
-    '''This is for storing vocab words in form of dictionary and dumping pos words extracted '''
-    words=[]
-    # ======================================= FOR KLEIN WITH TWISTED -- _file.value ========================================
-    words = uploaded_data(data,nlp_model)
-    if not words:
-        return False
-    dict_words={}
-    for wo in words:
-        if (wo not in list_of_stop):
-            dict_words[wo] = nlp_model(wo)
-    pickle_dump(dict_words,path)
-    logger.info('updated new vocabulary --->')
-    return True
