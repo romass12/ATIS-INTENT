@@ -1,10 +1,16 @@
 # ATIS-INTENT
 Intent classification using NER BIOS tagging and NB
 
-To install requirements 
+To install requirements:
+
+conda create -n ATIS_INTENT python=3.7
+
 pip install -r requirements.txt
 
+For training or testing:
+
 cd /ATIS-INTENT
+
 
 nohup python ATIS_INTENT.py --flag test &
 
