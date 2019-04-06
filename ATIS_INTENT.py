@@ -1,4 +1,6 @@
 # coding: utf-8
+'''author Roma Jain'''
+# coding: utf-8
 
 import csv,re
 import os,pickle
@@ -92,7 +94,7 @@ def test():
 	        if pred == i[1]:
 	            count+=1
 	
-	return count
+	return count,len(test_data)
 
 
 if __name__ == '__main__':
@@ -101,13 +103,7 @@ if __name__ == '__main__':
 	if args['flag'] == 'train':
 		train()
 	if args['flag'] == 'test':
-		acc = test()
-		logger.debug("Accuracy on test data -->{}".format(acc/len(test_data))*100)
+		acc,len_test = test()
+		logger.debug("Accuracy on test data -->{}".format(acc/len_test)*100)
 	else:
 		logger.warning(" wrong arugment !! use either 'train' or 'test' ")
-
-
-
-
-
-#                 
