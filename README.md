@@ -11,6 +11,8 @@ For training or testing:
 
 cd /ATIS-INTENT
 
+conda activate ATIS_INTENT
+
 
 nohup python ATIS_INTENT.py --flag test &
 
