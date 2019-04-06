@@ -4,7 +4,6 @@ import json
 import spacy
 import base64
 import pickle,os,sys,time
-from functools import wraps
 import csv,spacy
 import json,re
 import os,pickle
@@ -12,7 +11,7 @@ import sklearn
 import numpy as np
 from tqdm import tqdm
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.feature_extraction.text import TfidfVectorizer,CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn import preprocessing
 from sklearn.utils import shuffle
 import json,re
@@ -20,6 +19,8 @@ import numpy as np
 import logging
 import itertools
 import spacy
+from nltk.stem import WordNetLemmatizer 
+lemmatizer = WordNetLemmatizer() 
 
 logger = logging.getLogger(__name__)
 
