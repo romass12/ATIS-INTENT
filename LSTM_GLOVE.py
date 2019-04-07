@@ -10,7 +10,7 @@ from random import shuffle
 from keras import backend as K
 import matplotlib.pyplot as plt
 from keras.models import Sequential
-from keras.layers import Dense, Input, LSTM, Embedding, Dropout, Activation,SpatialDropout1D
+from keras.layers import Dense, Input, LSTM, Embedding, Dropout, Activation,SpatialDropout1D,Bidirectional
 from keras.models import load_model
 from keras.models import Model
 from keras.layers import Dense, Input, Embedding
@@ -48,16 +48,6 @@ set_keras_backend("tensorflow")
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-flag", "--flag", required=True,help="predict or train")
-
-
-
-EMEDDING_FILE = 'glove.6B.100d.txt'
-embed = 100
-vector_size=64#100#500
-epochs=12#35
-batch_size=16
-maxlen = 31
-
 
 def sensitivity(y_true, y_pred):
     '''sensitivity as one metric for checking accuracy of the model (unbalanced classes)'''
@@ -144,11 +134,10 @@ def get_XY(expressions,labels):
     return X,Y,maxlen,len(distinct_words),len(label_set),label_encoder,tk,integer_encode,distint_words,expressions,labels,onehot_encoder
 
 
-def model_train(maxlen,X_train,y_train,embedding_matrix,embed,len_distinct,len_label,epochs,batch_size,weight,vector_size,X_test,Y_test,filepath):
+def model_train(maxlen,X_train,y_train,embedding_matrix,embed,len_distinct,len_label,epochs,batch_size,weight,vector_size,X_test,Y_test):
     import tensorflow as tf
     from keras import backend as K
     set_keras_backend("tensorflow")
-    early_stopping = keras.callbacks.ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=10)
     model = Sequential()
     model.add(Embedding(len_distinct, 100, input_length=maxlen,weights=[embedding_matrix],trainable=True))
     model.add(SpatialDropout1D(0.1))
@@ -174,6 +163,8 @@ def get_class_weights(y, smooth_factor):
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+path_data = os.path.join(dir_path,'data')
+path_models = os.path.join(dir_path,'models')
 path_nlp_data = os.path.join(dir_path,'data/ATIS_TRAINING_DATA.csv')
 path_ner_data = os.path.join(dir_path,'data/ATIS_NER.csv')
 path_nlp_test_data = os.path.join(dir_path,'data/ATIS_TEST_DATA.csv')
@@ -223,19 +214,19 @@ def predict():
     early = keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0, patience=4, verbose=0, mode='max')
     early_stopping = keras.callbacks.ModelCheckpoint(filep, monitor='val_acc', verbose=0, save_best_only=True, save_weights_only=False, mode='max', period=2)
     model = load_model('LSTM_spatial_WOW.h5',custom_objects={'sensitivity': sensitivity,'f1score':f1score,'precision':precision})
-    with open('lstm_weightsWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_weightsWOW.pickle'), 'rb') as handle:
         weight = pickle.load(handle)
-    with open('lstm_tkWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_tkWOW.pickle'), 'rb') as handle:
         tokenizer = pickle.load(handle)
-    with open('lstm_labelWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_labelWOW.pickle'), 'rb') as handle:
         label_encoder = pickle.load(handle)
-    with open('lstm_X_trainWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_X_trainWOW.pickle'), 'rb') as handle:
         X_train = pickle.load(handle)
-    with open('lstm_y_trainWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_y_trainWOW.pickle'), 'rb') as handle:
         y_train = pickle.load(handle)
-    with open('lstm_X_testWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_X_testWOW.pickle'), 'rb') as handle:
         X_test = pickle.load(handle)
-    with open('lstm_y_testWOW.pickle', 'rb') as handle:
+    with open(os.path.join(path_models,'lstm_y_testWOW.pickle'), 'rb') as handle:
         y_test = pickle.load(handle)
     count=0
     for i in test_data:
@@ -256,6 +247,14 @@ def predict():
    
 def train():
     import tensorflow as tf
+
+    EMEDDING_FILE = 'glove.6B.100d.txt'
+    embed = 100
+    vector_size=64#100#500
+    epochs=12#35
+    batch_size=16
+    maxlen = 31
+
     X,y_train,maxlen,len_distinct,len_label,label_encoder,tk,labels,distint_words,expressions,label,onehot_encoder= get_XY([i[0] for i in training_data],[i[1] for i in training_data])
     len_distinct=1000#for added small talk!!!!#3045#2930#its 3600-more data
     len_vocab_words,embedding_matrix,words_not_found= load_pretrained(EMEDDING_FILE,tk,len_distinct)
@@ -265,22 +264,22 @@ def train():
     y_test=y_train
     from sklearn.utils import shuffle
     X_test, y_test = shuffle(X_test, y_test)
-    with open('lstm_X_trainWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_X_trainWOW.pickle'), 'wb') as handle:
         pickle.dump(X_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open('lstm_y_trainWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_y_trainWOW.pickle'), 'wb') as handle:
         pickle.dump(y_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open('lstm_X_testWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_X_testWOW.pickle'), 'wb') as handle:
         pickle.dump(X_test, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open('lstm_y_testWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_y_testWOW.pickle'), 'wb') as handle:
         pickle.dump(y_test, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open('lstm_tkWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_tkWOW.pickle'), 'wb') as handle:
         pickle.dump(tk, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open('lstm_labelWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_labelWOW.pickle'), 'wb') as handle:
         pickle.dump(label_encoder, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    with open('lstm_weightsWOW.pickle', 'wb') as handle:
+    with open(os.path.join(path_models,'lstm_weightsWOW.pickle'), 'wb') as handle:
         pickle.dump(weight, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
-    model,history = model_train(maxlen,X_train,y_train,embedding_matrix,embed,len_distinct,len_label,epochs,batch_size,weight,vector_size,X_test,y_test,filepath)
+    model,history = model_train(maxlen,X_train,y_train,embedding_matrix,embed,len_distinct,len_label,epochs,batch_size,weight,vector_size,X_test,y_test)
     model.save('LSTM_spatial_WOW.h5')
     print(history.history['acc'])
     print("validating ---------->")
